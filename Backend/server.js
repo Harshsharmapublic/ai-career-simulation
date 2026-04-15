@@ -4,21 +4,23 @@ const routes = require('./routes/userroutes');
 const app = express();
 connectDB();
 
-app.use(express.json());
-app.use("/api",routes);
-app.get('/', (req, res) => {
-    res.send('Hello World!');
+// Manual CORS middleware – allows the Vite dev server (port 5173) to call this API
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
 });
 
-app.listen(5000, ()=> console.log('Server is running on port 5000')); 
+app.use(express.json());
+app.use('/api', routes);
 
-// const user =require('./config/controller/usercontroller');
-// app.post('/waitlist', user.createwaitlist, async (req, res) => {
-//     const { first_name, last_name, email, phone_number, username } = req.body;
+app.get('/', (req, res) => {
+  res.send('AI Career Simulator API is running!');
+});
 
-//     if(!first_name || !email || !phone_number || !username) {
-//         await user .save();
-//         res.send("user saved");
-//     }
-// });
+app.listen(5000, () => console.log('Server is running on port 5000'));
 

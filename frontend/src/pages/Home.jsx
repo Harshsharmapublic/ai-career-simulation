@@ -74,17 +74,43 @@ export default function Home() {
   const [role, setRole] = useState('');
   const [interest, setInterest] = useState('Choose one...');
   const [generated, setGenerated] = useState(false);
+  const [simStatus, setSimStatus] = useState(null); // null | 'loading' | 'success' | 'error'
+  const [simError, setSimError]   = useState('');
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!role.trim()) {
       alert('Please enter a target role first.');
       return;
     }
-    setGenerated(true);
+    if (interest === 'Choose one...') {
+      alert('Please select an interest area.');
+      return;
+    }
+
+    setSimStatus('loading');
+    setSimError('');
+
+    try {
+      await fetch('/api/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, interest }),
+      });
+      // Show roadmap regardless of server response
+      setGenerated(true);
+      setSimStatus('success');
+    } catch (_err) {
+      // Backend offline — still show sample roadmap locally
+      setSimError('Backend offline — showing sample roadmap.');
+      setGenerated(true);
+      setSimStatus('error');
+    }
+
     setTimeout(() => {
       document.getElementById('roadmap-section')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   };
+
 
   return (
     <div>
@@ -182,24 +208,33 @@ export default function Home() {
             </div>
 
             <button
+              id="generate-roadmap"
               onClick={handleGenerate}
+              disabled={simStatus === 'loading'}
               style={{
                 width: '100%', padding: '11px',
-                backgroundColor: '#111111', color: '#ffffff',
+                backgroundColor: simStatus === 'loading' ? '#6b7280' : '#111111',
+                color: '#ffffff',
                 border: 'none', borderRadius: '6px',
                 fontWeight: '600', fontSize: '0.9rem',
-                cursor: 'pointer', transition: 'background-color 0.15s',
+                cursor: simStatus === 'loading' ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.15s',
                 fontFamily: 'Inter, sans-serif',
               }}
-              onMouseEnter={e => e.target.style.backgroundColor = '#374151'}
-              onMouseLeave={e => e.target.style.backgroundColor = '#111111'}
+              onMouseEnter={e => { if (simStatus !== 'loading') e.target.style.backgroundColor = '#374151'; }}
+              onMouseLeave={e => { if (simStatus !== 'loading') e.target.style.backgroundColor = '#111111'; }}
             >
-              Generate Roadmap
+              {simStatus === 'loading' ? 'Generating…' : 'Generate Roadmap'}
             </button>
 
-            {generated && (
+            {simStatus === 'success' && generated && (
               <p style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '10px', textAlign: 'center' }}>
-                ✓ Roadmap generated for "{role}"
+                ✓ Roadmap ready for "{role}" › {interest}
+              </p>
+            )}
+            {simStatus === 'error' && (
+              <p style={{ fontSize: '0.78rem', color: '#f97316', marginTop: '10px', textAlign: 'center' }}>
+                ⚠ {simError}
               </p>
             )}
           </div>
